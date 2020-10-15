@@ -1,0 +1,126 @@
+\section{Introduzione}
+Esistono tre tipi generali di parser per le grammatiche: universali, top-down e bottom-up. I metodi di parsing universali come l'algoritmo Cocke-Younger-Kasami e l'algoritmo di Earley possono analizzare qualsiasi grammatica, ma sono molto inefficienti.
+
+I metodi comunemente usati possono essere classificati come top-down o bottom-up. come sottointeso dai nomi, i metodi top-down creano parse tree partendo dalla radice (top) alle foglie (bottom), mentre i metodi bottom up iniziano dalle foglie e si fanno strada fino alla radice. In ogni caso, l'input del parser viene scansionato da sinistra a destra, un simbolo alla volta.
+
+I metodi top-down e bottom-up più efficienti funzionano solo per una sottoclasse di grammatiche, ma la maggior parte di queste classi, in particolare, Le gramamtiche LL ed LR, sono abbastanza espressive da descrivere la maggior parte dei costrutti utilizzati nei linguaggi di programmazione. I parser implementati a mano spesso usano grammatiche LL, mentre i parser per la classe più grande delle grammatiche LR sono solitamente costruiti usando strumenti automatizzati.\cite{compilers}
+
+Per questo progetto ho utilizzato un metodo di parsing detto \textit{packrat parsing}, che mantiene la capacità di riconoscimento di linguaggi di un parser LR, con la semplicità di un parser top-down, utilizzando però una grande quantità di spazio in memoria.
+
+\section{Context-free grammars}
+una context-free grammar è formata da simboli terminali, simboli non terminali, un simbolo di partenza, e regole di produzione.\cite{compilers}
+\begin{enumerate}
+	\item I \textit{terminali}, a volte chiamati "token". sono i simboli di base da cui vengono formate le stringhe.
+	\item I \textit{non terminali}, a volte chiamati "variabili sintattiche". sono le variabili sintattiche che rappresentano insiemi di stringhe
+	\item Un insieme di \textit{produzioni}, dove ogni produzione consiste in un nonterminale, chiamato la \textit{testa} o il   \textit{lato sinistro} della produzione, una freccia, ed una sequenza di terminali e/o nonterminali, chiamata il \textit{corpo} o \textit{lato destro} della produzione. l'obiettivo intuitivo di una produzione è di specificare una delle forme scritte  di un costrutto; se il nonterminale di testa rappresenta un costrutto, allora il corpo rappresenta una forma scritta del costrutto.
+	\item La designazione di uno dei nonterminali come simbolo di partenza.
+\end{enumerate}
+
+Scriviamo le grammatiche elencando le loro produzioni, con le produzioni per il simbolo di partenza per prime. Assumiamo che cifre, segni come \textbf{$<$} e \textbf{$<=$}, e stringhe in grassetto come \textbf{while} sono terminali. Un nome in italico è un nonterminale, e qualsiasi nome non in italico o simbolo può essere considerato un terminale.
+
+\textbf{Esempio:} Espressioni formate da cifre e da segni meno e più, per es. stringhe come $9-5+2$, $3-1$, o $7$. La seguente grammatica descrive la sintassi di queste espressioni. le produzioni sono:
+\begin{verbatim}
+list → list + digit 
+list → list - digit 
+list → digit
+digit → 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+\end{verbatim}
+
+\section{FIRST e FOLLOW}
+La costruzione sia dei parser bottom-up che di quelli top-down è facilitata da due funzioni, FIRST e FOLLOW, associate con una grammatica $G$. Durante il parsing top-down, FIRST e FOLLOW ci permettono di scegliere quale produzione applicare, in base al prossimo simbolo di input.\cite{compilers}
+
+Definiamo $FIRST(\alpha)$, dove $\alpha$ è qualsiasi stringa di simboli della grammatica, come l'insieme di terminali che iniziano le stringhe derivate da $\alpha$. Se $\alpha \overset{*}{\Rightarrow }  \epsilon$, allora anche $\epsilon$ è in FIRST($\alpha$)
+
+Per un'anteprima di come FIRST può essere usato durante il parsing predittivo, considera due produzioni $A \, \rightarrow \, \alpha \, | \, \beta$, dove FIRST($\alpha$) e FIRST($\beta$) sono insiemi disgiunti. Possiamo scegliere fra queste produzioni guardando il prossimo simbolo di input $a$, in quanto $a$ può essere al più in uno fra FIRST($\alpha$) e FIRST($\beta$), e non in entrambi. Per esempio, se $a$ è in FIRST($\alpha$) scegli la produzione $A \, \rightarrow \, \alpha $.
+
+Definiamo FOLLOW(A), per un nonterminale A, come l'insieme di terminali $a$ che possono apparire immediatamente a destra di A in una qualche forma sentenziale; ovvero, l'insieme dei terminali $a$ tali per cui esiste una derivazione della forma $S\, \overset{*}{\Rightarrow } \, \alpha A a \beta$, per qualche $\alpha$ e $\beta$. Nota che potrebbero esserci stati simboli fra $A$ ed $a$, in un qualche momento durante la derivazione, ma se così fosse, hanno derivato $\epsilon$ e sono scomparsi. Inoltre, se $A$ può essere il simbolo più a destra in qualche forma sentenziale, allora \$, simbolo di "fine input" che non è simbolo per nessuna grammatica, è in FOLLOW(A).
+
+\section{LL(1) grammars}
+I parser predittivi, ovvero i parser a discesa ricorsiva senza backtracking, possono essere costruiti per una classe di grammatiche chiamata LL(1). La prima L in LL(1) sta per scansione dell'input da sinistra a destra, la seconda "L" per la produzione di una leftmost derivation, e l' "1" per l'utilizzo di un simbolo di input di lookahead in ogni passoper compiere decisioni di parsing.
+
+La classe delle grammatiche LL(1) è abbastanza ricca da coprire la maggior parte dei costrutti di programmazione, anche se è necessaria attenzione nella scrittura di una grammatica adeguata per il linguaggio sorgente. Per esempio, nessuna grammatica left-recursive o ambigua può essere LL(1).
+
+Una grammatica $G$ è LL(1) se e solo se ogniqualvolta $A \rightarrow \alpha \: | \: \beta$ sono due produzioni distinte di G,valgono le seguenti condizioni:
+\begin{enumerate}
+	\item Per nessun terminale $a$ sia $\alpha$ che $\beta$ derivano stringhe che iniziano con $a$.
+	\item Al più uno fra $\alpha$ e $\beta$ può derivare la stringa vuota.
+	\item Se $\beta$ deriva in zero o più passi $\epsilon$, allora $\alpha$ non deriva nessuna stringa che inizia con un terminale in FOLLOW(A).
+\end{enumerate}
+Le prime due condizioni sono equivalenti ad affermare che FIRST($\alpha$) e FIRST($\beta$) sono insiemi disgiunti. La terza condizione è equivalente a dichiarare che se $\epsilon$ è in FIRST($\beta$), allora FIRST($\alpha$) e FOLLOW($A$) sono insiemi disgiunti, e in modo analogo se $\epsilon$ è in  FIRST($\alpha$).
+
+I parser predittivi possono essere costruiti per grammatiche LL(1) in quanto la produzione corretta da applicare per un nonterminale può essere selezionata guardando solo al simbolo di input corrente. Costrutti di controllo del flusso, con le loro parole chiave distinte, generalmente soddisfano i vincoli LL(1). Per esempio, se abbiamo le produzioni
+
+\begin{align*}
+	stmt &\rightarrow \textbf{if} \, ( \, expr \, ) \, stmt \, \textbf{else} \, stmt \\
+	\! &| \, \textbf{while} \, ( \, expr \, ) \, stmt \\
+	\! &| \, \{ \, stmt\_list \, \}
+\end{align*}
+
+allora le parole chiave \textbf{if}, \textbf{while} ed il simbolo \{ ci dicono quale alternativa è l' unica che potrebbe avere successo se trovassimo uno statement.
+
+\section{LR parsers}
+il tipo più diffuso di bottom-up parser al giorno d'oggi si basa su un concetto chiamato parsing LR($k$); la "L" sta per scansione left-to-right dell' input, la "R" per la costruzione di una derivazione rightmost invertita, e il $k$ per il numero di simboli di input di lookahead che vengono usati per compiere decisioni di parsing. 
+
+I parser LR sono guidati da tabelle, similarmente ai parser LL non ricorsivi. Una grammatica per cui può essere costruita una tabella di parsing LR è detta \textit{grammatica LR}. 
+
+Il parsing LR è attraente per una varietà di ragioni:
+
+\begin{itemize}
+	\item Dei parser LR possono essere costruiti per riconoscere virtualmente ogni costrutto di linguaggi di programmazione per cui può essere scritta una grammatica context-free. Esistono delle grammatiche context-free che non sono LR, ma queste possono generalmente essere evitate per i costrutti tipici dei linguaggi di programmazione
+	\item Il metodo di parsing LR è il metodo di parsing shift-reduce senza backtracking  più generale conosciuto, eppure può essere implementato tanto efficientemente quanto altri metodi shift-reduce più primitivi.
+	\item Un parser LR può individuare un errore sintattico appena è possibile farlo in una scansione da sinistra a destra dell' input.
+	\item La classe di grammatiche che può essere analizzata utilizzando metodi LR è un sovrainsieme proprio della classe di grammatiche che possono essere analizzate con metodi predittivi o LL. Perchè una gramamtica sia LR($k$), dobbiamo essere in grado di riconoscere la presenza del lato destro di una produzione in una forma sentenziale a destra, con k simboli di input di lookahead. Questa richiesta è molto meno stretta di quella per le grammatiche LL($k$) dove dobbiamo essere in grado di riconoscere l'uso di una produzione guardando solo i primi $k$ simboli di ciò che il suo lato destro deriva. Quindi, non dovrebbe sorprendere che le grammatiche LR possono descrivere più linguaggi delle grammatiche LL.
+\end{itemize}
+Lo svantaggio principale del metodo LR è che troppo impegnativo costruire un parser LR a mano per la grammatica di un tipico linguaggio di programmazione. Uno strumento specializzato, un generatore di parser LR, è necessario. Fortunatamente, sono disponibili molti generatori di questo tipo. Questi generatori prendono grammatiche context-free e producono automaticamente un parser per quella grammatica. Se la grammatica contiene ambiguità o altri costrutti che sono difficili da analizzare in una scansione left-to-right dell' input, il generatore di parser individua questi costrutti e fornisce messaggi di diagnostica dettagliati.
+
+\section{PEG} 
+Le \textit{Parsing Expression Grammars}  \cite{brianford} sono stilisticamente simili alle grammatiche context-free, con l'aggiunta di  caratteristiche simili alle espressioni regolari. Una differenza chiave è che invece dell' operatore di scelta non ordinata '\textbar', usato per indicare alternative per l'espansione di un non terminale in EBNF, le PEG utilizzano un operatore a scelta \textit{prioritizzata} '/'. questo operatore elenca modelli alternativi da testare \textit{in ordine}, utilizzando il primo match che ha successo. le regole in EBNF ‘A → a b \textbar a’ ed ‘A → a \textbar a b’ sono equivalenti in una CFG, ma le regole PEG ‘A ← a b / a’ and ‘A ← a / a b’ sono diverse. La seconda alternativa nella seconda regola PEG non avrà mai successo, in quanto la prima scelta viene sempre presa se la stringa di input da riconoscere inizia con 'a'.
+
+\textbf{definizione:} Una \textit{parsing expression grammar} (PEG) è una 4-upla $G = (V_N,V_T,R,e_S)$ , dove  $V_N$ è un insieme finito di simboli nonterminali, $R$ è un insieme finito di regole, $e_S$ è una parsing expression detta \textit{start expression}, e $V_N \bigcap V_T = \emptyset $. Ogni regola $r \in R$ è una coppia $(A,e)$, che scriviamo $A \leftarrow e$, dove $A \in V_N$ ed $e$ è una parsing expression. Per ogni nonterminale $A$, esiste esattamente una $e$ tale che $A \leftarrow e \in R$. $R$ è quindi una funzione da nonterminali ad espressioni, e scriviamo $R(A)$ per indicare l'unica espressione $e$ tale che $A \leftarrow e \in R$. 
+
+Definiamo le \textit{parsing expressions} induttivamente come segue. Se $e$, $e_1$, ed $e_2$ sono parsing expression, allora lo sono anche:
+
+\begin{enumerate}
+	\item  $\varepsilon$, la stringa vuota
+	\item $a$, qualsiasi terminale, dove $a \in V_T$.
+	\item $A$, qualsiasi nonterminale, dove $A \in V_N$.
+	\item $e_1 e_2$, una sequenza.
+	\item $e_1 / e_2$, una scelta con priorità.
+	\item $e^*$, zero-o-più ripetizioni.
+	\item $!e$, un predicato di negazione.
+\end{enumerate}
+Questa sintassi astratta non include classi di caratteri, la costante "qualsiasi carattere" '.', l'operatore opzionale '?', l'operatore una-o-più-ripetizioni '+', o l' operatore di and '\&', i quali appaiono nella sintassi concreta. Queste caratteristiche della sintassi concreta possono essere sostituite localmente nel modo seguente:
+\begin{itemize}
+\item Consideriamo l' espressione '.' nella sintassi concreta come una classe di caratteri contenente tutti i terminali in $V_T$.
+\item se $a_1,a_2,...,a_n$ sono tutti i terminali indicati in una classe di caratteri nella sintassi concreta, allora consideriamo la classe di caratteri come l' espressione nella sintassi astratta $a_1 / a_2 / ... / a_n$.
+\item Consideriamo l'operatore opzionale $e?$ nella sintassi concreta come $e/\varepsilon$.
+\item Consideriamo l'espressione una-o-più-ripetizioni $e^+$ come $ee^*$.
+\item Consideriamo l' operatore di and $\&e$ come $!(!e)$.
+
+\end{itemize}
+
+Qui un esempio di una PEG che riconosce formule matematiche che applicano le cinque operazioni di base ad interi non negativi.
+\begin{verbatim}
+Expr    ← Sum
+Sum     ← Product (('+' / '-') Product)*
+Product ← Power (('*' / '/') Power)*
+Power   ← Value ('^' Power)?
+Value   ← [0-9]+ / '(' Expr ')'
+\end{verbatim}
+
+\section{Packrat parser}
+Il \textit{packrat parsing}\cite{brianford2} è una tecnica di parsing top-down che elude la scelta fra predizione e backtracking. il \textit{packrat parsing} fornisce la semplicità, eleganza e generalità del modello con backtracking, ma elimina il rischio di avere tempi di parsing non lineari, salvando tutti i risultati di parsing intermedi mentre vengono elaborati, ed assicurando che nessun risultato venga valutato più di una volta. Le basi teoriche dell' algoritmo sono state sviluppate nel 1970\cite{1970, 1971}, ma la versione in tempo lineare non è mai stata messa in pratica a causa delle ridotte dimensioni delle memorie dei computer dei tempi. Tuttavia, su macchine moderne il costo in spazio di questo algoritmo è ragionevole per molte applicazioni. 
+
+Il packrat parsing è stranamente potente nonostante la sua garanzia di tempo lineare. Un packrat parser può essere facilmente costruito per ogni linguaggio descritto da una grammatica LL($k$) o LR($k$), oltre che per molti linguaggi che richiedono lookahead illimitato e non sono quindi LR. Questa flessibilità elimina molte delle restrizioni scomode imposte dai generatori di parser del lignaggio di YACC. i pacrat parser sono inoltre molto più semplici da costruire dei parser LR bottom-up, rendendo pratico il costruirli a mano.
+
+Lo svantagggio principale del packrat parsing è il suo consumo di spazio. nonostante il suo caso peggiore asintotico sia lo stesso di algoritmi convenzionali, lineare alla grandezza dell' input, il suo utilizzo di spazio è direttamente proporzionale alla dimensione dell'input invece che alla massima profondità di ricorsione, che potrebbero differire di ordini di grandezza. Tuttavia, per molte applicazioni come per compilatori ottimizzanti moderni, il costo di spazio di un packrat parser è probabilmente non più grande delle fasi di elaborazione successsive. questo costo potrebbe dunque essere uno scambio ragionevole per il potere e la flessibilità di parsing in tempo lineare con lookaehead illimitato.
+
+\section{TatSu}
+\textit{TatSu} è uno strumento che prende grammatiche in una variante di EBNF in input, e da in output un packrat parser per PEG in Python.
+
+\textit{TatSu} può compilare una grammatica contenuta in una stringa in un oggetto \textit{tatsu.grammars.Grammar} che può essere usato per analizzare qualsiasi input, similmente a come il modulo \textit{re} viene usato con le espressioni regolari, o può generare un modulo Python che implementa il parser.
+
+
+\textit{TatSu} supporta le regole di ricorsività a sinistra nelle grammatiche PEG, e rispetta l' associatività a sinistra nei parse tree risultanti.
+
+Abbiamo utilizzato \textit{TatSu} per generare i parser per i tre formati di input su cui stiamo lavorando, in modo da avere dei parser efficaci a partire dalle grammatiche relativamente semplici dei formati.

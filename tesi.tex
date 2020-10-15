@@ -1,0 +1,27 @@
+\documentclass[12pt, a4paper]{report}
+\usepackage{pdfpages}
+\usepackage{wrapfig}
+\usepackage{setspace}
+\usepackage{amsmath}
+\begin{document}
+\input{tex/front}
+
+\tableofcontents
+\thispagestyle{empty}
+
+\chapter{parser e grammatiche}
+\input{tex/PEG}
+
+\chapter{formati di input}
+\input{tex/formati}
+
+\chapter{conversione fra i formati}
+\input{tex/conversione}
+
+\chapter{motivazioni e conclusione}
+\input{tex/conclusione}
+
+\bibliographystyle{unsrt}
+\bibliography{tex/bibliography.bib}
+
+\end{document}

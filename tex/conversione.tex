@@ -1,0 +1,150 @@
+\section{similarità fra i formati}
+SASC, SCITE e SPhyR utilizzano in input un dataset SCS, con piccole variazioni fra l' input richiesto dai tre programmi. infatti in tutti e tre i formati:
+\begin{itemize}
+\item il file è una matrice ternaria, che rappresenta la presenza di mutazioni nelle cellule
+\item 1 rappresenta la presenza della mutazione
+\item 0 rappresenta l'assenza della mutazione
+\end{itemize}
+
+\section{differenze fra i formati}
+I tre formati di input indicano con un carattere diverso la mancanza di informazione per la combinazione di cellula e mutazione corrispondente, ovvero:
+\begin{itemize}
+\item 2 per SASC
+\item 3 per SCITE
+\item -1 per SPhyR
+\end{itemize}
+
+diversamente dagli altri due formati, SCITE utilizza le righe della matrice per rappresentare le mutazioni, e le colonne per rappresentare le cellule.
+
+SPhyR richiede che le prime due righe del file comunichino il numero di cellule e mutazioni rispettivamente.
+
+\section{grammatiche}
+Il primo passo del programma per la conversione fra i formati è stato scrivere la grammatica dei formati sotto forma di PEG ed utilizzare TatSu per generare i parser. Ho scelto di ignorare gli spazi bianchi nel file di input, in quanto non cambiano le informazioni contenute nel file. 
+
+Le grammatiche sono scritte nella sintassi di TatSu, che è una leggera variazione rispetto alla EBNF. Tatsu permette inoltre di aggiungere delle direttive nella grammatica, che controllano il comportamento del parser generato, e sono scritte nella forma \verb|@@name :: <value>|. in tutte e tre le grammatiche è presente la direttiva grammar, che specifica il nome della grammatica, e la direttiva whitespace, che definisce quali caratteri ignorare perchè spazi bianchi (in questo caso vengono ignorati gli spazi bianchi che non sono \textbackslash n).
+Le grammatiche così ottenute sono le seguenti:
+
+\subsection{SASC}
+{\fontfamily{qcr}\selectfont
+\begin{verbatim}
+@@grammar :: SASC
+@@whitespace ::  /(?s)[ \t\r\f\v]+/
+start = file $ ;
+cell = "0" ~ | "1" ~ | "2" ~ ;
+row = {cell};
+file = ("\n").{ row } ;
+\end{verbatim}
+}
+\begin{itemize}
+\item la regola \textit{start} matcha \textit{file} e il simbolo di \textit{end of text}, \$.
+\item la regola \textit{file} matcha quante più \textit{row} possibili, suddivise da \textbackslash n.
+\item la regola \textit{row} matcha quante più \textit{cell} possibili.
+\item la regola \textit{cell} matcha 0, 1 o 2.
+\end{itemize}
+
+\subsection{SCITE}
+{\fontfamily{qcr}\selectfont
+\begin{verbatim}
+@@grammar :: SCITE
+@@whitespace ::  /(?s)[ \t\r\f\v]+/
+start = file $ ;
+cell = "0" ~ | "1" ~ | "2" ~ | "3" ~ ;
+row = {cell};
+file = ("\n").{ row } ;
+\end{verbatim}
+}
+\begin{itemize}
+\item la regola \textit{start} matcha \textit{file} e il simbolo di \textit{end of text}, \$.
+\item la regola \textit{file} matcha quante più \textit{row} possibili, suddivise da \textbackslash n.
+\item la regola \textit{row} matcha quante più \textit{cell} possibili.
+\item la regola \textit{cell} matcha 0, 1, 2 o 3.
+\end{itemize}
+
+\subsection{SPhyR}
+{\fontfamily{qcr}\selectfont
+\begin{verbatim}
+@@grammar :: SPHYR
+@@whitespace ::  /(?s)[ \t\r\f\v]+/
+@@eol_comments :: /#([^\n]*?)$/
+start = cell_number_line "\n" snv_number_line "\n" file $ ;
+cell_number_line = /\d+/;
+snv_number_line = /\d+/;
+cell = "0" ~ | "1" ~ | "-1" ~ ;
+row = {cell};
+file = ("\n").{row};
+\end{verbatim}
+}
+Il formato di input SPhyR include commenti "python style", che iniziano con \# e terminano al primo carattere di newline. la direttiva @@eol\_comments definisce la struttura dei commenti che il parser deve ignorare.
+\begin{itemize}
+\item la regola \textit{start} matcha in \textit{cell\_number\_line} e \textit{snv\_number\_line} le prime due righe del file, ed in \textit{file} la matrice contenente i dati, assicurandosi che il file termini con il simbolo di \textit{end of text}, \$.
+\item \textit{cell\_number\_line} e \textit{snv\_number\_line} contengono solo un numero.
+\item la regola \textit{file} matcha quante più \textit{row} possibili, suddivise da \textbackslash n.
+\item la regola \textit{row} matcha quante più \textit{cell} possibili.
+\item la regola \textit{cell} matcha 0, 1, 2 o 3.
+\end{itemize}
+
+\section{codice}
+La maggior parte del codice scritto si trova in \textbf{Translator.py}, che usa i moduli generati con TatSu \textbf{parserSASC}, \textbf{parserSCITE} e \textbf{parserSPHYR}.
+
+\subsection{Translator}
+\textbf{Translator.py} può essere eseguito individualmente o come parte di celluloid, e richiede i seguenti parametri da linea di comando:
+\begin{itemize}
+\item \textbf{inputFormat}, il formato del file da convertire (SASC,SCITE o SPhyR). Se omesso, il default è SASC.
+\item \textbf{outputFormat}, il formato in cui si vuole convertire il file. Se omesso, il default è SASC.
+\item \textbf{outfile}, il file di output. Se omesso, il default è stdout.
+\item \textbf{file}, il file di input. 
+\end{itemize}
+\subsubsection{convert}
+La funzione \textit{convert} prende come parametro un' oggetto argparse.Namespace contenente le variabili \textit{outputFormat}, \textit{inputFormat}, \textit{outfile} e \textit{file}, che rappresentano i rispettivi parametri da linea di comando descritti sopra.
+
+La funzione legge il file di input, e successivamente chiama \textit{parse\_string}, \textit{translate} e \textit{write\_file} per analizzare, convertire e scrivere il file nel nuovo formato. 
+\subsubsection{parse\_string}
+La funzione \textit{parse\_string} ha due parametri:
+\begin{itemize}
+\item \textbf{file\_as\_string}, il contenuto del file di input sotto forma di stringa.
+\item \textbf{file\_format}, il formato (SASC, SCITE, SPhyR) del file di input in una stringa.
+\end{itemize}
+L'output della funzione consiste in una lista di liste, dove ogni elemento delle liste più interne è un carattere della matrice contenuta nel file. 
+\subsubsection{translate}
+La funzione \textit{translate} ha tre parametri:
+\begin{itemize}
+\item \textbf{input\_ast}, la matrice di caratteri, sotto forma di lista di liste di caratteri. 
+\item \textbf{format1}, il formato di partenza.
+\item \textbf{format2}, il formato in cui si vuole tradurre
+\end{itemize}
+L'output della funzione è una lista di liste, dove ogni elemento delle liste più interne è un carattere della matrice nel formato di destinazione. 
+\subsubsection{write\_file}
+La funzione \textit{write\_file} ha tre parametri:
+\begin{itemize}
+\item \textbf{ast\_translated}, una lista di liste, contenente i caratteri da scrivere nel nuovo file.
+\item \textbf{file\_name}, il nome del file in cui scrivere la matrice.
+\item \textbf{file\_format}, il formato del file in cui scrivere la matrice.
+\end{itemize}
+La funzione scrive nel file scelto la matrice in input nel formato specificato.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

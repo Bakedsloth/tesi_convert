@@ -1,0 +1,112 @@
+\section{SASC}
+%non sono sicuro della traduzione di "robust framework" in "struttura robusta"
+%Infinite site assumption -> Ipotesi dei siti infiniti?
+\textit{Simulated Annealing Single Cell inference (SASC)}\cite{sasc} è un nuovo modello e una struttura robusta basata sul Simulated Annealing per l' inferenza della progressione del cancro da dati SCS. L'obiettivo principale è di superare le limitazioni dell'Ipotesi di Siti Infiniti introducendo una versione del \textit{k-Dollo parsimony model} che permette la cancellazione di mutazioni dalla storia evolutiva del tumore.
+
+Il file di input previsto è un file contenente una matrice ternaria dove le righe rappresentano le cellule e le colonne le mutazioni. Ogni cellula deve essere separata da uno spazio o da un tab. ogni cella della matrice può essere:
+\begin{center}
+\begin{tabular}{ | c | c | }
+	\hline
+	I[$i,j$] = 0 & la mutazione $j$ non è stata osservata nella cella $i$ \\
+	\hline
+	I[$i,j$] = 1 & la mutazione $j$ è stata osservata nella cella $i$ \\
+	\hline
+	I[$i,j$] = 2 & non c'è informazione per la mutazione $j$ nella cella $i$ \\
+	\hline
+\end{tabular}
+\\
+\smallskip
+esempio:
+\\
+\smallskip
+\begin{tabular}{  c c c c c }
+	0 & 0 & 0 & 0 & 0 \\
+	0 & 1 & 0 & 0 & 0 \\
+	0 & 0 & 0 & 2 & 0 \\
+	0 & 0 & 1 & 1 & 0 \\
+	0 & 0 & 0 & 0 & 1 \\
+	0 & 0 & 0 & 0 & 0 \\
+
+\end{tabular}
+\end{center}
+
+\section{SCITE} 
+\textit{SCITE}\cite{scite} è un pacchetto software per calcolare la storia mutazionale di cellule somatiche. Dati profili di mutazione rumorosi di singole cellule, SCITE esegue una ricerca stocastica per trovare l'albero di Massima Verosimiglianza (ML) o di Maximum aposteriori (MAP) e/o di campionare dalla distribuzione di probabilità a posteriori. La ricostruzione dell' albero può essere combinata con una stima dei tassi di errore nei profili di mutazione.
+
+%controllare se esoni è la traduzione corretta di Exome
+%controllare se non c'è un verbo migliore di fatta per l' ultima parola
+\textit{SCITE} è progettato in particolare per ricostruire la storia mutazionale dei tumori basandosi sui profili di mutazioni ottenuti da esperimenti di sequenziamento a singola cellula degli esoni, ma è in linea di principio applicabile ad ogni tipo di profilo di mutazione (rumoroso) per cui l'Ipotesi di Siti Infiniti può essere fatta.
+
+Il file di input è una matrice di mutazioni, dove ogni colonna rappresenta il profilo di mutazione di una singola cellula, ed ogni riga rappresenta una mutazione. Le colonne sono separate da un carattere di whitespace.
+
+\begin{center}
+\textbf{(a) solo l' assenza/presenza della mutazione viene distinta}
+\smallskip
+
+\begin{tabular}{ | c | c | }
+	\hline
+	I[$i,j$] = 0 & la mutazione $i$ non è stata osservata nella cella $j$ \\
+	\hline
+	I[$i,j$] = 1 & la mutazione $i$ è stata osservata nella cella $j$ \\
+	\hline
+	I[$i,j$] = 3 & non c'è informazione per la mutazione $i$ nella cella $j$ \\
+	\hline
+\end{tabular}\\
+\smallskip
+\textbf{(b) mutazioni eterozigote ed omozigote vengono distinte}\\
+\smallskip
+\begin{tabular}{ | c | c | }
+	\hline
+	I[$i,j$] = 0 & la mutazione $i$ non è stata osservata nella cella $j$ \\
+	\hline
+	I[$i,j$] = 1 & la mutazione eterozigota $i$ è stata osservata nella cella $j$ \\
+	\hline
+	I[$i,j$] = 2 & la mutazione omozigota $i$ è stata osservata nella cella $j$ \\
+	\hline
+	I[$i,j$] = 3 & non c'è informazione per la mutazione $i$ nella cella $j$ \\
+	\hline
+\end{tabular}\\
+\smallskip
+esempio:\\
+\smallskip
+\begin{tabular}{  c c c c c }
+	0 & 0 & 0 & 0 & 0 \\
+	0 & 1 & 0 & 0 & 0 \\
+	0 & 0 & 0 & 3 & 0 \\
+	0 & 0 & 2 & 1 & 0 \\
+	0 & 0 & 0 & 0 & 1 \\
+	0 & 0 & 0 & 0 & 0 \\
+
+\end{tabular}
+\end{center}
+\section{SPhyR}
+\textit{SPhyR}\cite{sphyr} è un algoritmo per ricostruire alberi filogenetici dai dati di sequenziamento a singola cellula. \textit{SPhyR} usa il modello di filogenesi k-Dollo, dove ogni SNV può essere guadagnata una volta ma persa k volte.
+
+Il file di input di SPhyR è testuale. La prima linea elenca il numero di taxa (cellule), seguito dal numero di caratteri (SNVs) nella seconda linea. Ogni linea successiva definisce il valore di ogni carattere per ogni taxon. Più specificamente, i valori ammissibili sono 0, 1 e -1, dove 0 indica l'assenza della mutazione, 1 indica la presenza della mutazione e -1 indica un dato mancante.
+\begin{center}
+\begin{tabular}{ | c | c | }
+	\hline
+	I[$i,j$] = 0 & la mutazione $j$ non è stata osservata nella cella $i$ \\
+	\hline
+	I[$i,j$] = 1 & la mutazione $j$ è stata osservata nella cella $i$ \\
+	\hline
+	I[$i,j$] = -1 & non c'è informazione per la mutazione $j$ nella cella $i$ \\
+	\hline
+\end{tabular}
+\\
+\smallskip
+esempio:
+\\
+\smallskip
+\begin{tabular}{  c c c c c }
+	6 & & & &\\
+	5 & & & & \\
+	0 & 0 & 0 & 0 & 0 \\
+	0 & 1 & 0 & 0 & 0 \\
+	0 & 0 & 0 & -1 & 0 \\
+	0 & 0 & 1 & 1 & 0 \\
+	0 & 0 & 0 & 0 & 1 \\
+	0 & 0 & 0 & 0 & 0 \\
+
+\end{tabular}
+\end{center}
